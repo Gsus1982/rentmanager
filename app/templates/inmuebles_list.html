@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Inmuebles - RentManager{% endblock %}
+
+{% block content %}
+<div class="page-title">
+    <i class="fas fa-home"></i>
+    Gestión de Inmuebles
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <a href="{% url 'inmueble_create' %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-plus-circle"></i> Nuevo Inmueble
+        </a>
+        
+        {% if tipos %}
+        <div class="btn-group ms-2" role="group">
+            <a href="{% url 'inmuebles_list' %}" class="btn btn-outline-secondary">Todos</a>
+            {% for value, label in tipos %}
+            <a href="?tipo={{ value }}" class="btn btn-outline-secondary">{{ label }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    {% for inmueble in inmuebles %}
+    <div class="col-md-6 mb-4">
+        <div class="card" style="height: 100%; display: flex; flex-direction: column;">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-{% if inmueble.tipo == 'PISO' %}home{% elif inmueble.tipo == 'LOCAL' %}store{% else %}warehouse{% endif %}"></i>
+                    {{ inmueble.nombre }}
+                </h5>
+            </div>
+            <div class="card-body flex-grow-1">
+                <p class="text-muted mb-3"><i class="fas fa-map-marker-alt"></i> {{ inmueble.direccion }}, {{ inmueble.ciudad }} ({{ inmueble.codigo_postal }})</p>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <small class="text-muted">Tipo</small>
+                        <div class="fw-bold">{{ inmueble.get_tipo_display }}</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <small class="text-muted">Estado</small>
+                        <div class="fw-bold">
+                            {% if inmueble.activo %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactivo</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3 p-3" style="background-color: #f8f9fa; border-radius: 8px;">
+                    <div class="col-6">
+                        <small class="text-muted">Renta Mensual</small>
+                        <div class="fs-5 fw-bold text-primary">{{ inmueble.renta_mensual }}€</div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <small class="text-muted">Renta Bruta Anual</small>
+                        <div class="fs-5 fw-bold text-success">{{ inmueble.renta_anual_bruta|floatformat:2 }}€</div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <small class="text-muted">Impuestos IVA + IRPF</small>
+                        <div class="fw-bold">
+                            <span class="badge bg-warning">{{ inmueble.iva_total|floatformat:2 }}€ + {{ inmueble.irpf_total|floatformat:2 }}€</span>
+                        </div>
+                    </div>
+                    <div class="col-6 text-end">
+                        <small class="text-muted">Renta Neta Anual</small>
+                        <div class="fs-6 fw-bold text-success">{{ inmueble.renta_anual_neta|floatformat:2 }}€</div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info alert-sm" style="font-size: 0.9rem; padding: 10px;">
+                    <i class="fas fa-calendar"></i> Desde {{ inmueble.fecha_inicio_alquiler }}
+                    {% if inmueble.fecha_fin_alquiler %}
+                        hasta {{ inmueble.fecha_fin_alquiler }}
+                    {% else %}
+                        (Vigente)
+                    {% endif %}
+                </div>
+                
+                {% if inmueble.referencias_catastro %}
+                <small class="text-muted">Ref. Catastro: {{ inmueble.referencias_catastro }}</small>
+                {% endif %}
+            </div>
+            
+            <div class="card-footer">
+                <a href="{% url 'inmueble_detail' inmueble.id %}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-eye"></i> Ver Detalle
+                </a>
+                <a href="{% url 'gasto_create' inmueble.id %}" class="btn btn-sm btn-success">
+                    <i class="fas fa-receipt"></i> Añadir Gasto
+                </a>
+                <a href="{% url 'inmueble_update' inmueble.id %}" class="btn btn-sm btn-warning">
+                    <i class="fas fa-edit"></i> Editar
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-inbox" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 20px;"></i>
+                <p class="text-muted">No hay inmuebles registrados.</p>
+                <a href="{% url 'inmueble_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus-circle"></i> Crear primer inmueble
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

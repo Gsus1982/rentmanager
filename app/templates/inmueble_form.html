@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nuevo{% endif %} Inmueble - RentManager{% endblock %}
+
+{% block content %}
+<div class="page-title">
+    <i class="fas fa-plus-circle"></i>
+    {% if form.instance.pk %}Editar Inmueble{% else %}Nuevo Inmueble{% endif %}
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Datos Básicos -->
+                    <h5 class="mb-3"><i class="fas fa-info-circle"></i> Datos Básicos</h5>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="{{ form.nombre.id_for_label }}" class="form-label">
+                                {{ form.nombre.label }}
+                            </label>
+                            {{ form.nombre }}
+                            {% if form.nombre.errors %}
+                                <div class="text-danger small">{{ form.nombre.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.tipo.id_for_label }}" class="form-label">
+                                {{ form.tipo.label }}
+                            </label>
+                            {{ form.tipo }}
+                            {% if form.tipo.errors %}
+                                <div class="text-danger small">{{ form.tipo.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Ubicación -->
+                    <h5 class="mb-3 mt-4"><i class="fas fa-map"></i> Ubicación</h5>
+                    <div class="mb-3">
+                        <label for="{{ form.direccion.id_for_label }}" class="form-label">
+                            {{ form.direccion.label }}
+                        </label>
+                        {{ form.direccion }}
+                        {% if form.direccion.errors %}
+                            <div class="text-danger small">{{ form.direccion.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.ciudad.id_for_label }}" class="form-label">
+                                {{ form.ciudad.label }}
+                            </label>
+                            {{ form.ciudad }}
+                            {% if form.ciudad.errors %}
+                                <div class="text-danger small">{{ form.ciudad.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.codigo_postal.id_for_label }}" class="form-label">
+                                {{ form.codigo_postal.label }}
+                            </label>
+                            {{ form.codigo_postal }}
+                            {% if form.codigo_postal.errors %}
+                                <div class="text-danger small">{{ form.codigo_postal.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Datos Fiscales -->
+                    <h5 class="mb-3 mt-4"><i class="fas fa-file-invoice-dollar"></i> Datos Fiscales</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.renta_mensual.id_for_label }}" class="form-label">
+                                {{ form.renta_mensual.label }}
+                            </label>
+                            <div class="input-group">
+                                {{ form.renta_mensual }}
+                                <span class="input-group-text">€</span>
+                            </div>
+                            {% if form.renta_mensual.errors %}
+                                <div class="text-danger small">{{ form.renta_mensual.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.referencias_catastro.id_for_label }}" class="form-label">
+                                {{ form.referencias_catastro.label }}
+                            </label>
+                            {{ form.referencias_catastro }}
+                            <small class="text-muted">Opcional</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.iva_porcentaje.id_for_label }}" class="form-label">
+                                {{ form.iva_porcentaje.label }}
+                            </label>
+                            <div class="input-group">
+                                {{ form.iva_porcentaje }}
+                                <span class="input-group-text">%</span>
+                            </div>
+                            {% if form.iva_porcentaje.errors %}
+                                <div class="text-danger small">{{ form.iva_porcentaje.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.irpf_porcentaje.id_for_label }}" class="form-label">
+                                {{ form.irpf_porcentaje.label }}
+                            </label>
+                            <div class="input-group">
+                                {{ form.irpf_porcentaje }}
+                                <span class="input-group-text">%</span>
+                            </div>
+                            {% if form.irpf_porcentaje.errors %}
+                                <div class="text-danger small">{{ form.irpf_porcentaje.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Periodo Alquiler -->
+                    <h5 class="mb-3 mt-4"><i class="fas fa-calendar"></i> Periodo Alquiler</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.fecha_inicio_alquiler.id_for_label }}" class="form-label">
+                                {{ form.fecha_inicio_alquiler.label }}
+                            </label>
+                            {{ form.fecha_inicio_alquiler }}
+                            {% if form.fecha_inicio_alquiler.errors %}
+                                <div class="text-danger small">{{ form.fecha_inicio_alquiler.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.fecha_fin_alquiler.id_for_label }}" class="form-label">
+                                {{ form.fecha_fin_alquiler.label }}
+                            </label>
+                            {{ form.fecha_fin_alquiler }}
+                            <small class="text-muted">Dejar en blanco si vigente</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Socios -->
+                    {% if form.socios %}
+                    <h5 class="mb-3 mt-4"><i class="fas fa-users"></i> Socios Propietarios</h5>
+                    <div class="mb-3">
+                        {{ form.socios }}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Botones -->
+                    <div class="mt-4 d-grid gap-2 d-md-flex">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save"></i>
+                            {% if form.instance.pk %}Actualizar Inmueble{% else %}Crear Inmueble{% endif %}
+                        </button>
+                        <a href="{% url 'inmuebles_list' %}" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Información Lateral -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Ayuda</h5>
+            </div>
+            <div class="card-body">
+                <h6>Impuestos por defecto</h6>
+                <ul class="small">
+                    <li><strong>IVA:</strong> 21% para todos</li>
+                    <li><strong>IRPF:</strong> 19% para renta inmobiliaria</li>
+                </ul>
+                
+                <hr>
+                
+                <h6>Cálculos automáticos</h6>
+                <p class="small">El sistema calcula automáticamente:</p>
+                <ul class="small">
+                    <li>Renta anual bruta (mensual × 12)</li>
+                    <li>IVA y IRPF anuales</li>
+                    <li>Renta neta anual</li>
+                </ul>
+                
+                <hr>
+                
+                <h6>Referencia Catastro</h6>
+                <p class="small">Puedes obtenerla en el <a href="https://www.catastro.minhap.es/" target="_blank">sitio del catastro</a>.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

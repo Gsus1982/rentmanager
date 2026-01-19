@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ inmueble.nombre }} - RentManager{% endblock %}
+
+{% block content %}
+<div class="page-title">
+    <i class="fas fa-home"></i>
+    {{ inmueble.nombre }}
+</div>
+
+<div class="alert alert-info">
+    <i class="fas fa-map-marker-alt"></i> {{ inmueble.direccion }}, {{ inmueble.ciudad }} ({{ inmueble.codigo_postal }})
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value">{{ inmueble.renta_mensual }}€</div>
+            <div class="stat-label">Renta Mensual</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-left-color: #27ae60;">
+            <div class="stat-value" style="color: #27ae60;">{{ inmueble.renta_anual_bruta|floatformat:2 }}€</div>
+            <div class="stat-label">Bruta Anual</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-left-color: #f39c12;">
+            <div class="stat-value" style="color: #f39c12;">{{ inmueble.renta_anual_neta|floatformat:2 }}€</div>
+            <div class="stat-label">Neta Anual</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-left-color: #e74c3c;">
+            <div class="stat-value" style="color: #e74c3c;">{{ gastos_total|floatformat:2 }}€</div>
+            <div class="stat-label">Gastos Anuales</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-file-invoice"></i> Información Fiscal</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="form-label">Tipo de Inmueble</label>
+                        <div class="fw-bold">{{ inmueble.get_tipo_display }}</div>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Estado</label>
+                        <div>
+                            {% if inmueble.activo %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactivo</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-3 p-3" style="background-color: #f8f9fa; border-radius: 8px;">
+                    <div class="col-6">
+                        <label class="form-label">IVA</label>
+                        <div class="fw-bold">{{ inmueble.iva_porcentaje }}%</div>
+                        <small class="text-muted">{{ inmueble.iva_total|floatformat:2 }}€ anual</small>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">IRPF</label>
+                        <div class="fw-bold">{{ inmueble.irpf_porcentaje }}%</div>
+                        <small class="text-muted">{{ inmueble.irpf_total|floatformat:2 }}€ anual</small>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="mb-3">
+                    <label class="form-label">Referencia Catastro</label>
+                    <div>{{ inmueble.referencias_catastro|default:"No especificada" }}</div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="form-label">Inicio Alquiler</label>
+                        <div class="fw-bold">{{ inmueble.fecha_inicio_alquiler }}</div>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Fin Alquiler</label>
+                        <div>{{ inmueble.fecha_fin_alquiler|default:"Vigente" }}</div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'inmueble_update' inmueble.id %}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Resumen Económico</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Renta Bruta Anual</span>
+                        <strong>{{ inmueble.renta_anual_bruta|floatformat:2 }}€</strong>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar" style="width: 100%; background-color: #27ae60;"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>- IVA ({{ inmueble.iva_porcentaje }}%)</span>
+                        <strong class="text-danger">-{{ inmueble.iva_total|floatformat:2 }}€</strong>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-danger" style="width: 25%; background-color: #9b59b6 !important;"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>- IRPF ({{ inmueble.irpf_porcentaje }}%)</span>
+                        <strong class="text-danger">-{{ inmueble.irpf_total|floatformat:2 }}€</strong>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-danger" style="width: 20%; background-color: #1abc9c !important;"></div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span><strong>Renta Neta Anual</strong></span>
+                        <strong class="text-success" style="font-size: 1.2rem;">{{ inmueble.renta_anual_neta|floatformat:2 }}€</strong>
+                    </div>
+                </div>
+                
+                {% if gastos_total > 0 %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>- Gastos Deducibles</span>
+                        <strong class="text-danger">-{{ gastos_total|floatformat:2 }}€</strong>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span><strong>Renta Neta c/ Gastos</strong></span>
+                        <strong class="text-info" style="font-size: 1.2rem;">{{ renta_neta_con_gastos|floatformat:2 }}€</strong>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-receipt"></i> Gastos Registrados</h5>
+                    <a href="{% url 'gasto_create' inmueble.id %}" class="btn btn-sm btn-success">
+                        <i class="fas fa-plus"></i> Nuevo
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if gastos %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Categoría</th>
+                                    <th>Descripción</th>
+                                    <th>Cantidad</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for gasto in gastos %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-info">{{ gasto.get_categoria_display }}</span>
+                                    </td>
+                                    <td>
+                                        <small>{{ gasto.descripcion }}</small>
+                                        <br><small class="text-muted">{{ gasto.fecha }}</small>
+                                    </td>
+                                    <td class="fw-bold">{{ gasto.cantidad }}€</td>
+                                    <td>
+                                        <a href="{% url 'gasto_update' gasto.id %}" class="btn btn-xs btn-warning" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'gasto_delete' gasto.id %}" class="btn btn-xs btn-danger" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="alert alert-info">
+                        <strong>Total Gastos:</strong> {{ gastos_total|floatformat:2 }}€
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-inbox"></i>
+                        <p>Sin gastos registrados</p>
+                        <a href="{% url 'gasto_create' inmueble.id %}" class="btn btn-sm btn-success">
+                            <i class="fas fa-plus"></i> Registrar primer gasto
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Gastos por Categoría</h5>
+            </div>
+            <div class="card-body">
+                {% if gastos_por_categoria %}
+                    <canvas id="chartGastosPorCategoria"></canvas>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <p>Sin datos de gastos</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if gastos_por_categoria %}
+<script>
+    const gastosPorCategoria = {{ gastos_json|safe }};
+    const ctxGastos = document.getElementById('chartGastosPorCategoria').getContext('2d');
+    new Chart(ctxGastos, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(gastosPorCategoria),
+            datasets: [{
+                data: Object.values(gastosPorCategoria),
+                backgroundColor: ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

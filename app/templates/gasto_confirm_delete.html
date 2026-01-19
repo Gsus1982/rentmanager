@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Gasto - RentManager{% endblock %}
+
+{% block content %}
+<div class="page-title">
+    <i class="fas fa-trash"></i>
+    Confirmar Eliminación de Gasto
+</div>
+
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="card border-danger">
+            <div class="card-body">
+                <div class="alert alert-danger mb-3">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Atención!</strong> Esta acción no se puede deshacer.
+                </div>
+                
+                <p class="mb-3">
+                    ¿Estás seguro de que deseas eliminar este gasto?
+                </p>
+                
+                <div class="card mb-3" style="background-color: #f8f9fa;">
+                    <div class="card-body">
+                        <p><strong>{{ object.descripcion }}</strong></p>
+                        <p class="text-muted mb-1">Inmueble: {{ object.inmueble.nombre }}</p>
+                        <p class="text-muted mb-1">Categoría: {{ object.get_categoria_display }}</p>
+                        <p class="text-muted mb-0">Cantidad: <strong>{{ object.cantidad }}€</strong></p>
+                    </div>
+                </div>
+                
+                <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="fas fa-trash"></i> Eliminar Gasto
+                    </button>
+                </form>
+                
+                <a href="{% url 'inmueble_detail' object.inmueble.id %}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

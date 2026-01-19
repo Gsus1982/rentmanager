@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar Inmueble - RentManager{% endblock %}
+
+{% block content %}
+<div class="page-title">
+    <i class="fas fa-trash"></i>
+    Confirmar Eliminación
+</div>
+
+<div class="row">
+    <div class="col-md-6 offset-md-3">
+        <div class="card border-danger">
+            <div class="card-body">
+                <div class="alert alert-danger mb-3">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Atención!</strong> Esta acción no se puede deshacer.
+                </div>
+                
+                <p class="mb-3">
+                    ¿Estás seguro de que deseas eliminar el inmueble <strong>"{{ object.nombre }}"</strong>?
+                </p>
+                
+                <div class="card mb-3" style="background-color: #f8f9fa;">
+                    <div class="card-body">
+                        <p><strong>{{ object.nombre }}</strong></p>
+                        <p class="text-muted mb-0">{{ object.direccion }}, {{ object.ciudad }}</p>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle"></i>
+                    También se eliminarán todos los gastos y transacciones asociadas a este inmueble.
+                </div>
+                
+                <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="fas fa-trash"></i> Eliminar Inmueble
+                    </button>
+                </form>
+                
+                <a href="{% url 'inmuebles_list' %}" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

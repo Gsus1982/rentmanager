@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - RentManager{% endblock %}
+
+{% block content %}
+<div class="page-title">
+    <i class="fas fa-tachometer-alt"></i>
+    Dashboard
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card">
+            <div class="stat-value">{{ num_inmuebles }}</div>
+            <div class="stat-label">Inmuebles Activos</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="border-left-color: #27ae60;">
+            <div class="stat-value" style="color: #27ae60;">{{ renta_bruta_total|floatformat:2 }}€</div>
+            <div class="stat-label">Renta Bruta Anual</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="border-left-color: #f39c12;">
+            <div class="stat-value" style="color: #f39c12;">{{ renta_neta_total|floatformat:2 }}€</div>
+            <div class="stat-label">Renta Neta Anual</div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="stat-card" style="border-left-color: #e74c3c;">
+            <div class="stat-value" style="color: #e74c3c;">{{ gastos_totales|floatformat:2 }}€</div>
+            <div class="stat-label">Gastos Totales</div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="stat-card" style="border-left-color: #9b59b6;">
+            <div class="stat-value" style="color: #9b59b6;">{{ iva_total|floatformat:2 }}€</div>
+            <div class="stat-label">IVA Total</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="border-left-color: #1abc9c;">
+            <div class="stat-value" style="color: #1abc9c;">{{ irpf_total|floatformat:2 }}€</div>
+            <div class="stat-label">IRPF Total</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card" style="border-left-color: #34495e;">
+            <div class="stat-value" style="color: #34495e;">{{ renta_neta_total|add:gastos_totales|add:iva_total|add:irpf_total|floatformat:2 }}€</div>
+            <div class="stat-label">Total Disponible</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Distribución de Renta Bruta</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chartDistribucion"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Impuestos por Inmueble</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chartImpuestos"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-doughnut"></i> Composición de Ingresos</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chartComposicion"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-coins"></i> Análisis de Gastos</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chartGastos"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Resumen Detallado por Inmueble</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Tipo</th>
+                                <th>Renta Mensual</th>
+                                <th>Renta Bruta Anual</th>
+                                <th>Gastos</th>
+                                <th>IVA</th>
+                                <th>IRPF</th>
+                                <th>Renta Neta</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inmueble in inmuebles %}
+                            <tr>
+                                <td><strong>{{ inmueble.nombre }}</strong></td>
+                                <td>
+                                    <span class="badge bg-info">{{ inmueble.get_tipo_display }}</span>
+                                </td>
+                                <td>{{ inmueble.renta_mensual|floatformat:2 }}€</td>
+                                <td><strong>{{ inmueble.renta_anual_bruta|floatformat:2 }}€</strong></td>
+                                <td>
+                                    {% if inmueble.gastos_totales > 0 %}
+                                        <span class="badge bg-danger">{{ inmueble.gastos_totales|floatformat:2 }}€</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td><span class="badge bg-warning">{{ inmueble.iva_total|floatformat:2 }}€</span></td>
+                                <td><span class="badge bg-secondary">{{ inmueble.irpf_total|floatformat:2 }}€</span></td>
+                                <td><strong class="text-success">{{ inmueble.renta_anual_neta|floatformat:2 }}€</strong></td>
+                                <td>
+                                    <a href="{% url 'inmueble_detail' inmueble.id %}" class="btn btn-sm btn-primary" title="Ver detalle">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox"></i> Sin inmuebles. <a href="{% url 'inmueble_create' %}">Crear uno ahora</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const inmuebles = {{ inmuebles_json|safe }};
+    
+    // Gráfico de distribución
+    const ctxDistribucion = document.getElementById('chartDistribucion').getContext('2d');
+    new Chart(ctxDistribucion, {
+        type: 'doughnut',
+        data: {
+            labels: inmuebles.map(i => i.nombre),
+            datasets: [{
+                data: inmuebles.map(i => i.renta_bruta),
+                backgroundColor: [
+                    '#3498db', '#e74c3c', '#2ecc71', '#f39c12',
+                    '#9b59b6', '#1abc9c', '#34495e', '#e67e22',
+                    '#16a085', '#2c3e50'
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 15, font: { size: 13 } } },
+                tooltip: { callbacks: { label: function(context) { return context.label + ': ' + context.parsed + '€'; } } }
+            }
+        }
+    });
+    
+    // Gráfico de impuestos
+    const ctxImpuestos = document.getElementById('chartImpuestos').getContext('2d');
+    new Chart(ctxImpuestos, {
+        type: 'bar',
+        data: {
+            labels: inmuebles.map(i => i.nombre),
+            datasets: [
+                {
+                    label: 'IVA',
+                    data: inmuebles.map(i => i.iva),
+                    backgroundColor: '#9b59b6'
+                },
+                {
+                    label: 'IRPF',
+                    data: inmuebles.map(i => i.irpf),
+                    backgroundColor: '#1abc9c'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true, ticks: { callback: function(value) { return value + '€'; } } }
+            },
+            plugins: {
+                legend: { position: 'bottom', labels: { padding: 15 } }
+            }
+        }
+    });
+    
+    // Gráfico de composición
+    const totalBruta = inmuebles.reduce((sum, i) => sum + i.renta_bruta, 0);
+    const totalImpuestos = inmuebles.reduce((sum, i) => sum + i.iva + i.irpf, 0);
+    const totalGastos = inmuebles.reduce((sum, i) => sum + i.gastos, 0);
+    
+    const ctxComposicion = document.getElementById('chartComposicion').getContext('2d');
+    new Chart(ctxComposicion, {
+        type: 'pie',
+        data: {
+            labels: ['Renta Bruta', 'Impuestos', 'Gastos'],
+            datasets: [{
+                data: [totalBruta, totalImpuestos, totalGastos],
+                backgroundColor: ['#27ae60', '#e74c3c', '#f39c12'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+    
+    // Gráfico de gastos
+    const ctxGastos = document.getElementById('chartGastos').getContext('2d');
+    new Chart(ctxGastos, {
+        type: 'bar',
+        data: {
+            labels: inmuebles.map(i => i.nombre),
+            datasets: [{
+                label: 'Gastos',
+                data: inmuebles.map(i => i.gastos),
+                backgroundColor: '#e74c3c'
+            }]
+        },
+        options: {
+            responsive: true,
+            indexAxis: 'y',
+            scales: {
+                x: { beginAtZero: true, ticks: { callback: function(value) { return value + '€'; } } }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+</script>
+{% endblock %}

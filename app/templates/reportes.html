@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block title %}Reportes - RentManager{% endblock %}
+
+{% block content %}
+<div class="page-title">
+    <i class="fas fa-chart-bar"></i>
+    Reportes Anuales
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value">{{ inmuebles.count }}</div>
+            <div class="stat-label">Inmuebles</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-left-color: #27ae60;">
+            <div class="stat-value" style="color: #27ae60;">{{ renta_total|floatformat:2 }}€</div>
+            <div class="stat-label">Renta Total Bruta</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-left-color: #e74c3c;">
+            <div class="stat-value" style="color: #e74c3c;">{{ impuestos_total|floatformat:2 }}€</div>
+            <div class="stat-label">Total Impuestos</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border-left-color: #f39c12;">
+            <div class="stat-value" style="color: #f39c12;">{{ gastos_total|floatformat:2 }}€</div>
+            <div class="stat-label">Gastos Totales</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Resumen por Inmueble</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Inmueble</th>
+                                <th class="text-end">Renta Bruta</th>
+                                <th class="text-end">Impuestos</th>
+                                <th class="text-end">Neta</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inmueble in inmuebles %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'inmueble_detail' inmueble.id %}">
+                                        <strong>{{ inmueble.nombre }}</strong>
+                                    </a>
+                                    <br>
+                                    <small class="text-muted">{{ inmueble.direccion }}</small>
+                                </td>
+                                <td class="text-end">{{ inmueble.renta_anual_bruta|floatformat:2 }}€</td>
+                                <td class="text-end">{{ inmueble.iva_total|add:inmueble.irpf_total|floatformat:2 }}€</td>
+                                <td class="text-end fw-bold">{{ inmueble.renta_anual_neta|floatformat:2 }}€</td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="table-dark">
+                                <td><strong>TOTAL</strong></td>
+                                <td class="text-end"><strong>{{ renta_total|floatformat:2 }}€</strong></td>
+                                <td class="text-end"><strong>{{ impuestos_total|floatformat:2 }}€</strong></td>
+                                <td class="text-end"><strong>{{ renta_total|add:impuestos_total|floatformat:2 }}€</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calculator"></i> Desglose Fiscal</h5>
+            </div>
+            <div class="card-body">
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <div class="row mb-3">
+                        <div class="col-8">
+                            <span>Renta Total Bruta</span>
+                        </div>
+                        <div class="col-4 text-end fw-bold">
+                            {{ renta_total|floatformat:2 }}€
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row mb-3">
+                        <div class="col-8 text-muted">
+                            - IVA (21%)
+                        </div>
+                        <div class="col-4 text-end text-muted">
+                            {% widthratio renta_total 100 21 as iva_calc %}
+                            -{{ iva_calc|floatformat:2 }}€
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-8 text-muted">
+                            - IRPF (19%)
+                        </div>
+                        <div class="col-4 text-end text-muted">
+                            {% widthratio renta_total 100 19 as irpf_calc %}
+                            -{{ irpf_calc|floatformat:2 }}€
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-8 text-muted">
+                            - Gastos Deducibles
+                        </div>
+                        <div class="col-4 text-end text-muted">
+                            -{{ gastos_total|floatformat:2 }}€
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row">
+                        <div class="col-8">
+                            <strong>Neto Disponible</strong>
+                        </div>
+                        <div class="col-4 text-end" style="font-size: 1.2rem; color: #27ae60; font-weight: bold;">
+                            {{ neto_total|floatformat:2 }}€
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-receipt"></i> Gastos Desglosados</h5>
+            </div>
+            <div class="card-body">
+                {% if inmuebles %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Inmueble</th>
+                                    <th>Categoría</th>
+                                    <th>Descripción</th>
+                                    <th>Cantidad</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for inmueble in inmuebles %}
+                                    {% for gasto in inmueble.gastos.all %}
+                                    <tr>
+                                        <td><small><strong>{{ inmueble.nombre }}</strong></small></td>
+                                        <td><span class="badge bg-info">{{ gasto.get_categoria_display }}</span></td>
+                                        <td><small>{{ gasto.descripcion }}</small></td>
+                                        <td class="fw-bold">{{ gasto.cantidad }}€</td>
+                                        <td><small class="text-muted">{{ gasto.fecha }}</small></td>
+                                    </tr>
+                                    {% empty %}
+                                    {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <p>Sin gastos registrados</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4 mb-4">
+    <div class="col-md-12">
+        <button class="btn btn-primary" onclick="window.print()">
+            <i class="fas fa-print"></i> Imprimir Reportes
+        </button>
+    </div>
+</div>
+{% endblock %}
