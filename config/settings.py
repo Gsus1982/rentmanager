@@ -89,3 +89,32 @@ TAX_CONFIG = {
     'LOCAL': {'iva': 21, 'irpf': 19},
     'PISO': {'iva': 21, 'irpf': 19},
 }
+
+# ===== RAILWAY CONFIGURATION =====
+import dj_database_url
+from decouple import config as decouple_config
+
+# Database
+if 'DATABASE_URL' in os.environ:
+    DATABASES['default'] = dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+
+# ALLOWED_HOSTS para Railway
+RAILWAY_DOMAIN = decouple_config('RAILWAY_DOMAIN', default='localhost')
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    RAILWAY_DOMAIN,
+    '*.railway.app',
+]
+
+# Security
+DEBUG = decouple_config('DEBUG', default=False, cast=bool)
+SECRET_KEY = decouple_config('SECRET_KEY', default='django-insecure-change-me-in-production')
+
+# Static files
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
