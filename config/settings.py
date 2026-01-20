@@ -90,7 +90,9 @@ TAX_CONFIG = {
     'PISO': {'iva': 21, 'irpf': 19},
 }
 
+
 # ===== RAILWAY CONFIGURATION =====
+import os
 import dj_database_url
 from decouple import config as decouple_config
 
