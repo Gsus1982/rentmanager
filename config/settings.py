@@ -1,11 +1,18 @@
+import os
 from pathlib import Path
-from decouple import config
+from decouple import config as decouple_config
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-rentmanager-2026')
-DEBUG = config('DEBUG', default=True, cast=bool)
-ALLOWED_HOSTS = ['*']
+# ===== DJANGO CORE =====
+DEBUG = decouple_config('DEBUG', default=False, cast=bool)
+SECRET_KEY = decouple_config('SECRET_KEY', default='django-insecure-change-me-in-production')
+
+# En Railway, AUTO_ALLOWED_HOSTS viene del environment
+ALLOWED_HOSTS = decouple_config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    ALLOWED_HOSTS.append('*.up.railway.app')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -14,13 +21,42 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',
     'corsheaders',
+    'rest_framework',
+    'app',
+]
+cat > ~/Documents/rentmanager/config/settings.py << 'EOF'
+import os
+from pathlib import Path
+from decouple import config as decouple_config
+import dj_database_url
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# ===== DJANGO CORE =====
+DEBUG = decouple_config('DEBUG', default=False, cast=bool)
+SECRET_KEY = decouple_config('SECRET_KEY', default='django-insecure-change-me-in-production')
+
+# En Railway, AUTO_ALLOWED_HOSTS viene del environment
+ALLOWED_HOSTS = decouple_config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    ALLOWED_HOSTS.append('*.up.railway.app')
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'corsheaders',
+    'rest_framework',
     'app',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -49,72 +85,64 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'rentmanager',
-        'USER': 'rentuser',
-        'PASSWORD': 'rent_secure_password_123',
-        'HOST': 'db',
-        'PORT': '5432',
+# ===== DATABASE (Railway or Local) =====
+if 'DATABASE_URL' in os.environ:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
+# ===== AUTHENTICATION =====
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+# ===== INTERNATIONALIZATION =====
 LANGUAGE_CODE = 'es-es'
 TIME_ZONE = 'Europe/Madrid'
 USE_I18N = True
 USE_TZ = True
 
+# ===== STATIC & MEDIA FILES =====
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:8000",
-    "http://localhost:8000",
-]
-
+# ===== DJANGO REST FRAMEWORK =====
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
     ],
 }
 
+# ===== CORS =====
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
+
+# ===== DEFAULT FIELD =====
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ===== APP CONFIGURATION =====
 TAX_CONFIG = {
     'LOCAL': {'iva': 21, 'irpf': 19},
     'PISO': {'iva': 21, 'irpf': 19},
 }
-
-
-# ===== RAILWAY CONFIGURATION =====
-import os
-import dj_database_url
-from decouple import config as decouple_config
-
-# Database - con fallback a SQLite si no hay DATABASE_URL
-if 'DATABASE_URL' in os.environ:
-    DATABASES['default'] = dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
-else:
-    # Fallback a SQLite si DATABASE_URL no existe
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-
-
-# Security
-DEBUG = decouple_config('DEBUG', default=False, cast=bool)
-SECRET_KEY = decouple_config('SECRET_KEY', default='django-insecure-change-me-in-production')
-
-# Static files
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
