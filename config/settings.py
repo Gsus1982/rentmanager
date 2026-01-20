@@ -96,22 +96,20 @@ import os
 import dj_database_url
 from decouple import config as decouple_config
 
-# Database
+# Database - con fallback a SQLite si no hay DATABASE_URL
 if 'DATABASE_URL' in os.environ:
     DATABASES['default'] = dj_database_url.config(
         default=os.environ.get('DATABASE_URL'),
         conn_max_age=600,
         conn_health_checks=True,
     )
+else:
+    # Fallback a SQLite si DATABASE_URL no existe
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    }
 
-# ALLOWED_HOSTS para Railway
-RAILWAY_DOMAIN = decouple_config('RAILWAY_DOMAIN', default='localhost')
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    RAILWAY_DOMAIN,
-    '*.railway.app',
-]
 
 # Security
 DEBUG = decouple_config('DEBUG', default=False, cast=bool)
