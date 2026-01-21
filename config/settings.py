@@ -8,9 +8,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = decouple_config('DEBUG', default=False, cast=bool)
 SECRET_KEY = decouple_config('SECRET_KEY', default='django-insecure-change-me-in-production')
 
-ALLOWED_HOSTS = decouple_config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'web-production-c26d.up.railway.app']
+
 if os.environ.get('RAILWAY_ENVIRONMENT'):
-    ALLOWED_HOSTS.append('*.up.railway.app')
+    ALLOWED_HOSTS.extend([
+        '*.up.railway.app',
+        'web-production-c26d.up.railway.app'
+    ])
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
