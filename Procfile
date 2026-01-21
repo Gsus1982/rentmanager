@@ -1,1 +1,1 @@
-web: python manage.py collectstatic --noinput && gunicorn config.wsgi --bind 0.0.0.0:$PORT --workers 1
+web: gunicorn config.wsgi --bind 0.0.0.0:$PORT --workers 1 --log-level debug
