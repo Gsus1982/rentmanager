@@ -12,9 +12,12 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'web-production-c26d.up.railway.app']
 
 if os.environ.get('RAILWAY_ENVIRONMENT'):
     ALLOWED_HOSTS.extend([
-        '*.up.railway.app',
-        'web-production-c26d.up.railway.app'
+        'web-production-c26d.up.railway.app',
     ])
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://web-production-c26d.up.railway.app',
+]
 
 
 INSTALLED_APPS = [
