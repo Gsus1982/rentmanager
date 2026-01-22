@@ -23,11 +23,13 @@ CSRF_TRUSTED_ORIGINS = [
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Cookies de sesión/CSRF (básico para que el admin recuerde el login)
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
+# Cookies de sesión/CSRF (config mínima y estándar)
+SESSION_COOKIE_SECURE = False       # cuando todo funcione, podrás subirlo a True
+CSRF_COOKIE_SECURE = False          # igual que arriba
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
+# NO definimos SESSION_COOKIE_DOMAIN ni CSRF_COOKIE_DOMAIN
+
 
 
 INSTALLED_APPS = [
