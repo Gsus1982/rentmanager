@@ -19,6 +19,16 @@ CSRF_TRUSTED_ORIGINS = [
     'https://web-production-c26d.up.railway.app',
 ]
 
+# Estamos detrás de un proxy HTTPS (Railway)
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Cookies de sesión/CSRF (básico para que el admin recuerde el login)
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -31,6 +41,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'app',
 ]
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
