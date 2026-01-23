@@ -139,3 +139,23 @@ TAX_CONFIG = {
     'LOCAL': {'iva': 21, 'irpf': 19},
     'PISO': {'iva': 21, 'irpf': 19},
 }
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'django.contrib.auth': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
+}
