@@ -282,3 +282,30 @@ def reportes(request):
     }
     
     return render(request, 'reportes.html', context)
+
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.views import LoginView
+import logging
+
+logger = logging.getLogger('django.contrib.auth')
+
+class CustomAdminLoginView(LoginView):
+    """Vista de login custom con logging detallado"""
+    template_name = 'admin/login.html'
+    
+    def post(self, request, *args, **kwargs):
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        logger.info(f"DEBUG: Intento de login para usuario='{username}'")
+        
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            logger.info(f"DEBUG: Usuario '{username}' autenticado exitosamente, is_staff={user.is_staff}, is_active={user.is_active}")
+            login(request, user)
+            logger.info(f"DEBUG: Usuario '{username}' en sesión, redirigiendo a /admin/")
+            return redirect('/admin/')
+        else:
+            logger.warning(f"DEBUG: AUTENTICACIÓN FALLIDA para usuario='{username}' - password incorrecta o usuario no existe")
+            return super().post(request, *args, **kwargs)
