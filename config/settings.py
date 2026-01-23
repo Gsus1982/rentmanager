@@ -19,18 +19,17 @@ CSRF_TRUSTED_ORIGINS = [
     'https://web-production-c26d.up.railway.app',
 ]
 
-CSRF_COOKIE_DOMAIN = '.up.railway.app'
-SESSION_COOKIE_DOMAIN = '.up.railway.app'
+CSRF_COOKIE_DOMAIN = 'web-production-c26d.up.railway.app'
+SESSION_COOKIE_DOMAIN = 'web-production-c26d.up.railway.app'
 
-# Estamos detrás de un proxy HTTPS (Railway)
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Cookies de sesión/CSRF (config mínima y estándar)
-SESSION_COOKIE_SECURE = False       # cuando todo funcione, podrás subirlo a True
-CSRF_COOKIE_SECURE = False          # igual que arriba
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
+
 # NO definimos SESSION_COOKIE_DOMAIN ni CSRF_COOKIE_DOMAIN
 
 
@@ -52,19 +51,18 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
-MIDDLEWARE = [
+MMIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-   # 'django.middleware.csrf.CsrfViewMiddleware',
-
+    'django.middleware.csrf.CsrfViewMiddleware',  # DEBE estar aquí
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 
 # SESSION_SAVE_EVERY_REQUEST = True
 

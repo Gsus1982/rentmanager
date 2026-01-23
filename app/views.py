@@ -283,13 +283,7 @@ def reportes(request):
     
     return render(request, 'reportes.html', context)
 
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.views import LoginView
-import logging
 
-logger = logging.getLogger('django.contrib.auth')
-
-class CustomAdminLoginView(LoginView):
     """Vista de login custom con logging detallado"""
     template_name = 'admin/login.html'
     
