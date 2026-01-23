@@ -19,6 +19,9 @@ CSRF_TRUSTED_ORIGINS = [
     'https://web-production-c26d.up.railway.app',
 ]
 
+CSRF_COOKIE_DOMAIN = '.up.railway.app'
+SESSION_COOKIE_DOMAIN = '.up.railway.app'
+
 # Estamos detrás de un proxy HTTPS (Railway)
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -63,7 +66,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-SESSION_SAVE_EVERY_REQUEST = True
+# SESSION_SAVE_EVERY_REQUEST = True
 
 
 ROOT_URLCONF = 'config.urls'
