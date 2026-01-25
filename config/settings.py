@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 RAILWAY_ENV = os.environ.get('RAILWAY_ENVIRONMENT')
 
 if RAILWAY_ENV:
-    DEBUG = False
+    DEBUG = True
 else:
     DEBUG = decouple_config('DEBUG', default=True, cast=bool)
 
