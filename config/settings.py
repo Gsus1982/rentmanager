@@ -19,8 +19,19 @@ CSRF_TRUSTED_ORIGINS = [
     'https://web-production-c26d.up.railway.app',
 ]
 
-CSRF_COOKIE_DOMAIN = 'web-production-c26d.up.railway.app'
-SESSION_COOKIE_DOMAIN = 'web-production-c26d.up.railway.app'
+# En PRODUCTION (Railway con HTTPS)
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_DOMAIN = 'web-production-c26d.up.railway.app'
+    CSRF_COOKIE_DOMAIN = 'web-production-c26d.up.railway.app'
+else:
+    # En desarrollo local (HTTP)
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_DOMAIN = None
+    CSRF_COOKIE_DOMAIN = None
+
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
