@@ -167,14 +167,16 @@ LOGGING = {
             'class': 'logging.StreamHandler',
         },
     },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',  # ← Solo WARNING y ERROR
+    },
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'DEBUG',
-        },
-        'django.contrib.auth': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'WARNING',  # ← Solo WARNING y ERROR
+            'propagate': False,
         },
     },
 }
+
