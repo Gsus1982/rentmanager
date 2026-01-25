@@ -5,7 +5,13 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = decouple_config('DEBUG', default=False, cast=bool)
+RAILWAY_ENV = os.environ.get('RAILWAY_ENVIRONMENT')
+
+if RAILWAY_ENV:
+    DEBUG = False
+else:
+    DEBUG = decouple_config('DEBUG', default=True, cast=bool)
+
 SECRET_KEY = decouple_config('SECRET_KEY', default='django-insecure-change-me-in-production')
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'web-production-c26d.up.railway.app']
@@ -19,22 +25,24 @@ CSRF_TRUSTED_ORIGINS = [
     'https://web-production-c26d.up.railway.app',
 ]
 
-# En PRODUCTION (Railway con HTTPS)
-if not DEBUG:
+# CSRF & Sessions Configuration
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    # Production en Railway (HTTPS detrás de proxy)
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_DOMAIN = 'web-production-c26d.up.railway.app'
-    CSRF_COOKIE_DOMAIN = 'web-production-c26d.up.railway.app'
+    SESSION_COOKIE_DOMAIN = None
+    CSRF_COOKIE_DOMAIN = None
     SESSION_COOKIE_SAMESITE = 'Lax'
     CSRF_COOKIE_SAMESITE = 'Lax'
 else:
-    # En desarrollo local (HTTP)
+    # Desarrollo local
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_DOMAIN = None
     CSRF_COOKIE_DOMAIN = None
     SESSION_COOKIE_SAMESITE = 'Lax'
     CSRF_COOKIE_SAMESITE = 'Lax'
+
 
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
