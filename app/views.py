@@ -21,8 +21,7 @@ from .forms import InmuebleForm, GastoForm
 @require_http_methods(["GET", "POST"])
 def login_view(request):
     """
-    Login REAL (no redirige al admin).
-    URL final en tu caso: /app/login/ (por el prefijo del config/urls.py)
+    Login REAL con DEBUG.
     """
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -33,18 +32,29 @@ def login_view(request):
         username = (request.POST.get("username") or "").strip()
         password = request.POST.get("password") or ""
 
-        user = authenticate(request, username=username, password=password)
+        print(f"\n=== DEBUG LOGIN ===")
+        print(f"Username recibido: '{username}'")
+        print(f"Password recibido: '{password}'")
+        print(f"Largo username: {len(username)}")
+        print(f"Largo password: {len(password)}")
 
-        # Permitimos entrar a cualquier usuario válido (si quieres solo staff, añade: and user.is_staff)
+        user = authenticate(request, username=username, password=password)
+        
+        print(f"Resultado authenticate(): {user}")
+        print(f"=== FIN DEBUG ===\n")
+
+        # Permitimos entrar a cualquier usuario válido
         if user is not None and user.is_active:
+            print(f"✓ Usuario {username} autenticado correctamente, iniciando sesión...")
             login(request, user)
-            # si viene ?next=..., respétalo
             next_url = request.GET.get("next") or request.POST.get("next")
             return redirect(next_url or 'dashboard')
         else:
+            print(f"✗ Autenticación fallida para {username}")
             error = "Usuario o contraseña incorrectos"
 
     return render(request, "login.html", {"error": error})
+
 
 
 @login_required(login_url="login")
