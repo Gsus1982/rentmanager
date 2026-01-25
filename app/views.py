@@ -21,7 +21,7 @@ from .forms import InmuebleForm, GastoForm
 @require_http_methods(["GET", "POST"])
 def login_view(request):
     """
-    Login REAL con DEBUG.
+    Login REAL con DEBUG mejorado.
     """
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -32,20 +32,40 @@ def login_view(request):
         username = (request.POST.get("username") or "").strip()
         password = request.POST.get("password") or ""
 
-        print(f"\n=== DEBUG LOGIN ===")
-        print(f"Username recibido: '{username}'")
-        print(f"Password recibido: '{password}'")
-        print(f"Largo username: {len(username)}")
-        print(f"Largo password: {len(password)}")
-
-        user = authenticate(request, username=username, password=password)
+        print(f"\n{'='*60}")
+        print(f"[LOGIN DEBUG] Username: '{username}'")
+        print(f"[LOGIN DEBUG] Password: '{password}'")
+        print(f"[LOGIN DEBUG] Username length: {len(username)}")
+        print(f"[LOGIN DEBUG] Password length: {len(password)}")
         
-        print(f"Resultado authenticate(): {user}")
-        print(f"=== FIN DEBUG ===\n")
+        # Intenta authenticate() NORMAL
+        user = authenticate(request, username=username, password=password)
+        print(f"[LOGIN DEBUG] authenticate(request, ...) result: {user}")
+        
+        # Intenta authenticate() SIN request (Django backend directo)
+        user2 = authenticate(username=username, password=password)
+        print(f"[LOGIN DEBUG] authenticate(sin request) result: {user2}")
+        
+        # Busca el usuario en BD y verifica manualmente
+        from django.contrib.auth.models import User
+        db_user = User.objects.filter(username=username).first()
+        print(f"[LOGIN DEBUG] Usuario en BD: {db_user}")
+        
+        if db_user:
+            password_ok = db_user.check_password(password)
+            print(f"[LOGIN DEBUG] check_password() result: {password_ok}")
+            print(f"[LOGIN DEBUG] is_active: {db_user.is_active}")
+        
+        print(f"{'='*60}\n")
 
-        # Permitimos entrar a cualquier usuario válido
+        # Usa lo que funcione
+        if user is None:
+            user = user2
+        if user is None and db_user and db_user.check_password(password) and db_user.is_active:
+            user = db_user
+
         if user is not None and user.is_active:
-            print(f"✓ Usuario {username} autenticado correctamente, iniciando sesión...")
+            print(f"✓ Iniciando sesión para {username}...")
             login(request, user)
             next_url = request.GET.get("next") or request.POST.get("next")
             return redirect(next_url or 'dashboard')
@@ -54,6 +74,7 @@ def login_view(request):
             error = "Usuario o contraseña incorrectos"
 
     return render(request, "login.html", {"error": error})
+
 
 
 
