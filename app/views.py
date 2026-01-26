@@ -46,29 +46,19 @@ def login_view(request):
         username = (request.POST.get("username") or "").strip()
         password = request.POST.get("password") or ""
 
-        # Intenta authenticate() primero (seguro contra timing attacks)
-        user = authenticate(request, username=username, password=password)
-        
-        # Fallback: si falla en producción, usar check_password()
-        if user is None:
-            from django.contrib.auth.models import User
-            try:
-                user_obj = User.objects.get(username=username)
-                if user_obj.check_password(password):
-                    user = user_obj
-            except User.DoesNotExist:
-                pass
-        
-        if user is not None:
-            if user.is_active:
+        # Usar check_password() directamente (funciona en local y producción)
+        from django.contrib.auth.models import User
+        try:
+            user = User.objects.get(username=username)
+            if user.check_password(password) and user.is_active:
                 login(request, user)
                 next_url = request.GET.get("next") or request.POST.get("next")
                 if next_url and (not next_url.startswith('/') or '//' in next_url):
                     next_url = None
                 return redirect(next_url or 'dashboard')
             else:
-                error = "Usuario inactivo"
-        else:
+                error = "Credenciales incorrectas"
+        except User.DoesNotExist:
             error = "Credenciales incorrectas"
 
     return render(request, "login.html", {"error": error})
