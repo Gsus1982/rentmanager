@@ -29,14 +29,17 @@ def login_view(request):
         username = (request.POST.get("username") or "").strip()
         password = request.POST.get("password") or ""
 
+        from django.contrib.auth.models import User
         
-        user = authenticate(username=username, password=password)
-
-        if user is not None and user.is_active:
-            login(request, user)
-            next_url = request.GET.get("next") or request.POST.get("next")
-            return redirect(next_url or 'dashboard')
-        else:
+        try:
+            user = User.objects.get(username=username)
+            if user.check_password(password) and user.is_active:
+                login(request, user)
+                next_url = request.GET.get("next") or request.POST.get("next")
+                return redirect(next_url or 'dashboard')
+            else:
+                error = "Usuario o contraseña incorrectos"
+        except User.DoesNotExist:
             error = "Usuario o contraseña incorrectos"
 
     return render(request, "login.html", {"error": error})
