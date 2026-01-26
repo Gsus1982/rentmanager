@@ -29,8 +29,7 @@ def login_view(request):
         username = (request.POST.get("username") or "").strip()
         password = request.POST.get("password") or ""
 
-        # NO uses request en authenticate
-        from django.contrib.auth import authenticate, login
+        
         user = authenticate(username=username, password=password)
 
         if user is not None and user.is_active:
