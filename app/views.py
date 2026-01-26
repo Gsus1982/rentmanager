@@ -33,10 +33,12 @@ from .forms import InmuebleForm, GastoForm
 # AUTENTICACIÓN
 # ============================================================================
 
+import sys
+
 @require_http_methods(["GET", "POST"])
 @csrf_protect
 def login_view(request):
-    """Vista de login segura"""
+    """Vista de login segura - CON DEBUG"""
     if request.user.is_authenticated:
         return redirect('dashboard')
 
@@ -45,21 +47,33 @@ def login_view(request):
     if request.method == "POST":
         username = (request.POST.get("username") or "").strip()
         password = request.POST.get("password") or ""
+        
+        # DEBUG: Escribir en stderr para ver en Railway logs
+        print(f"[LOGIN_DEBUG] Username: {username}", file=sys.stderr)
+        print(f"[LOGIN_DEBUG] Password length: {len(password)}", file=sys.stderr)
 
-        # Usar check_password() directamente (funciona en local y producción)
         from django.contrib.auth.models import User
         try:
-            user = User.objects.get(username=username)
-            if user.check_password(password) and user.is_active:
-                login(request, user)
+            user_obj = User.objects.get(username=username)
+            print(f"[LOGIN_DEBUG] User found: {user_obj.username}", file=sys.stderr)
+            
+            pwd_check = user_obj.check_password(password)
+            print(f"[LOGIN_DEBUG] Password check result: {pwd_check}", file=sys.stderr)
+            print(f"[LOGIN_DEBUG] Is active: {user_obj.is_active}", file=sys.stderr)
+            
+            if pwd_check and user_obj.is_active:
+                login(request, user_obj)
+                print(f"[LOGIN_DEBUG] LOGIN SUCCESSFUL", file=sys.stderr)
                 next_url = request.GET.get("next") or request.POST.get("next")
                 if next_url and (not next_url.startswith('/') or '//' in next_url):
                     next_url = None
                 return redirect(next_url or 'dashboard')
             else:
                 error = "Credenciales incorrectas"
+                print(f"[LOGIN_DEBUG] LOGIN FAILED: pwd_check={pwd_check}, is_active={user_obj.is_active}", file=sys.stderr)
         except User.DoesNotExist:
             error = "Credenciales incorrectas"
+            print(f"[LOGIN_DEBUG] User not found: {username}", file=sys.stderr)
 
     return render(request, "login.html", {"error": error})
 
