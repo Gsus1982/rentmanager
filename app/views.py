@@ -4,22 +4,28 @@ from decimal import Decimal
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import login
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Sum, F, DecimalField
+from django.db.models import Sum, F, DecimalField, Q
 from django.db.models.functions import Coalesce
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_protect
 from django.views.generic import CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
+from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 
 from .models import Socio, Inmueble, Gasto
 from .forms import InmuebleForm, GastoForm
 
 
 @require_http_methods(["GET", "POST"])
+@csrf_protect
 def login_view(request):
+    """Vista de login segura - verifica credenciales directamente"""
     if request.user.is_authenticated:
         return redirect('dashboard')
 
@@ -29,59 +35,93 @@ def login_view(request):
         username = (request.POST.get("username") or "").strip()
         password = request.POST.get("password") or ""
 
-        from django.contrib.auth.models import User
-        
+        # Buscar usuario y verificar contraseña directamente
         try:
             user = User.objects.get(username=username)
             if user.check_password(password) and user.is_active:
                 login(request, user)
                 next_url = request.GET.get("next") or request.POST.get("next")
+                # Validar que next_url es seguro
+                if next_url and not next_url.startswith('/'):
+                    next_url = None
                 return redirect(next_url or 'dashboard')
             else:
-                error = "Usuario o contraseña incorrectos"
+                error = "Credenciales incorrectas"
         except User.DoesNotExist:
-            error = "Usuario o contraseña incorrectos"
+            error = "Credenciales incorrectas"
 
     return render(request, "login.html", {"error": error})
 
 
+def get_user_inmuebles(user):
+    """Helper para obtener inmuebles según permisos del usuario"""
+    try:
+        socio = Socio.objects.get(usuario=user)
+        inmuebles = socio.inmuebles.all()
+        return inmuebles, socio
+    except Socio.DoesNotExist:
+        if user.is_staff:
+            inmuebles = Inmueble.objects.all()
+            return inmuebles, None
+        else:
+            return Inmueble.objects.none(), None
+
+
+def check_inmueble_permission(user, inmueble):
+    """Verifica si el usuario tiene permiso para acceder al inmueble"""
+    if user.is_staff:
+        return True
+    
+    try:
+        socio = Socio.objects.get(usuario=user)
+        return inmueble in socio.inmuebles.all()
+    except Socio.DoesNotExist:
+        return False
+
+
 @login_required(login_url="login")
 def dashboard(request):
-    """Dashboard principal con resumen de datos"""
+    """Dashboard principal con resumen de datos optimizado"""
+    
+    # Obtener inmuebles con relaciones precargadas
+    inmuebles, socio = get_user_inmuebles(request.user)
+    inmuebles = inmuebles.filter(activo=True).select_related().prefetch_related('gastos')
 
-    # Obtener datos del usuario (si es socio)
-    try:
-        socio = Socio.objects.get(usuario=request.user)
-        inmuebles = socio.inmuebles.filter(activo=True)
-    except Socio.DoesNotExist:
-        # Si es admin, mostrar todos los inmuebles
-        inmuebles = Inmueble.objects.filter(activo=True)
-        socio = None
+    # Cálculos usando agregación SQL (más eficiente)
+    agregados = inmuebles.aggregate(
+        renta_bruta_total=Coalesce(
+            Sum(F('renta_mensual') * 12, output_field=DecimalField()), 
+            Decimal('0'), 
+            output_field=DecimalField()
+        ),
+        gastos_totales=Coalesce(
+            Sum('gastos__cantidad', output_field=DecimalField()),
+            Decimal('0'),
+            output_field=DecimalField()
+        )
+    )
 
-    # Cálculos globales
-    renta_bruta_total = inmuebles.aggregate(
-        total=Coalesce(Sum(F('renta_mensual') * 12), Decimal('0'), output_field=DecimalField())
-    )['total']
+    renta_bruta_total = agregados['renta_bruta_total']
+    gastos_totales = agregados['gastos_totales']
 
-    renta_neta_total = sum([i.renta_anual_neta for i in inmuebles])
-
-    gastos_totales = Gasto.objects.filter(inmueble__in=inmuebles).aggregate(
-        total=Coalesce(Sum('cantidad'), Decimal('0'), output_field=DecimalField())
-    )['total']
-
-    iva_total = sum([i.iva_total for i in inmuebles])
-    irpf_total = sum([i.irpf_total for i in inmuebles])
-
-    # Datos para gráficos
+    # Calcular valores que requieren lógica personalizada
+    renta_neta_total = Decimal('0')
+    iva_total = Decimal('0')
+    irpf_total = Decimal('0')
+    
     inmuebles_data = []
     for inmueble in inmuebles:
+        renta_neta_total += inmueble.renta_anual_neta
+        iva_total += inmueble.iva_total
+        irpf_total += inmueble.irpf_total
+        
         inmuebles_data.append({
             'nombre': inmueble.nombre,
-            'renta_bruta': float(inmueble.renta_anual_bruta),
-            'renta_neta': float(inmueble.renta_anual_neta),
-            'iva': float(inmueble.iva_total),
-            'irpf': float(inmueble.irpf_total),
-            'gastos': float(inmueble.gastos_totales),
+            'renta_bruta': str(inmueble.renta_anual_bruta),
+            'renta_neta': str(inmueble.renta_anual_neta),
+            'iva': str(inmueble.iva_total),
+            'irpf': str(inmueble.irpf_total),
+            'gastos': str(inmueble.gastos_totales),
         })
 
     context = {
@@ -101,21 +141,28 @@ def dashboard(request):
 
 @login_required(login_url="login")
 def inmuebles_list(request):
-    """Listar todos los inmuebles"""
-    try:
-        socio = Socio.objects.get(usuario=request.user)
-        inmuebles = socio.inmuebles.all()
-    except Socio.DoesNotExist:
-        inmuebles = Inmueble.objects.all()
+    """Listar todos los inmuebles con paginación"""
+    inmuebles, _ = get_user_inmuebles(request.user)
 
     # Filtrado por tipo
     tipo_filter = request.GET.get('tipo')
-    if tipo_filter:
+    if tipo_filter and tipo_filter in dict(Inmueble.TIPOS):
         inmuebles = inmuebles.filter(tipo=tipo_filter)
 
+    # Paginación
+    paginator = Paginator(inmuebles.order_by('-id'), 20)  # 20 por página
+    page_number = request.GET.get('page', 1)
+    
+    try:
+        page_obj = paginator.get_page(page_number)
+    except Exception:
+        page_obj = paginator.get_page(1)
+
     return render(request, 'inmuebles_list.html', {
-        'inmuebles': inmuebles,
-        'tipos': Inmueble.TIPOS
+        'page_obj': page_obj,
+        'inmuebles': page_obj.object_list,
+        'tipos': Inmueble.TIPOS,
+        'tipo_filter': tipo_filter,
     })
 
 
@@ -125,35 +172,38 @@ def inmueble_detail(request, pk):
     inmueble = get_object_or_404(Inmueble, pk=pk)
 
     # Verificar permiso
-    try:
-        socio = Socio.objects.get(usuario=request.user)
-        if inmueble not in socio.inmuebles.all() and not request.user.is_staff:
-            messages.error(request, 'No tienes permiso para ver este inmueble')
-            return redirect('inmuebles_list')
-    except Socio.DoesNotExist:
-        if not request.user.is_staff:
-            messages.error(request, 'No tienes permiso para ver este inmueble')
-            return redirect('inmuebles_list')
+    if not check_inmueble_permission(request.user, inmueble):
+        messages.error(request, 'No tienes permiso para ver este inmueble')
+        return redirect('inmuebles_list')
 
+    # Optimizar consultas
     gastos = inmueble.gastos.all()
-    gastos_total = gastos.aggregate(Sum('cantidad'))['cantidad__sum'] or Decimal('0')
+    gastos_agregado = gastos.aggregate(
+        total=Coalesce(Sum('cantidad'), Decimal('0'), output_field=DecimalField())
+    )
+    gastos_total = gastos_agregado['total']
 
     transacciones = inmueble.transacciones.all()[:10]  # Últimas 10
 
-    # Gastos por categoría
+    # Gastos por categoría usando agregación
+    gastos_por_categoria_query = gastos.values('categoria').annotate(
+        total=Sum('cantidad')
+    ).order_by('categoria')
+    
     gastos_por_categoria = {}
-    for gasto in gastos:
-        cat = gasto.get_categoria_display()
-        if cat not in gastos_por_categoria:
-            gastos_por_categoria[cat] = Decimal('0')
-        gastos_por_categoria[cat] += gasto.cantidad
+    for item in gastos_por_categoria_query:
+        categoria_display = dict(Gasto._meta.get_field('categoria').choices).get(
+            item['categoria'], 
+            item['categoria']
+        )
+        gastos_por_categoria[categoria_display] = item['total']
 
     context = {
         'inmueble': inmueble,
         'gastos': gastos,
         'gastos_total': gastos_total,
         'gastos_por_categoria': gastos_por_categoria,
-        'gastos_json': json.dumps({k: float(v) for k, v in gastos_por_categoria.items()}),
+        'gastos_json': json.dumps({k: str(v) for k, v in gastos_por_categoria.items()}),
         'transacciones': transacciones,
         'renta_neta': inmueble.renta_anual_neta,
         'renta_neta_con_gastos': inmueble.renta_neta_con_gastos,
@@ -171,16 +221,22 @@ class InmuebleCreateView(LoginRequiredMixin, CreateView):
     login_url = 'login'
 
     def form_valid(self, form):
-        response = super().form_valid(form)
+        # Guardar primero para obtener el ID
+        self.object = form.save()
+        
         # Asignar socio actual si existe
         try:
             socio = Socio.objects.get(usuario=self.request.user)
-            if socio not in form.instance.socios.all():
-                form.instance.socios.add(socio)
+            if socio not in self.object.socios.all():
+                self.object.socios.add(socio)
         except Socio.DoesNotExist:
-            pass
-        messages.success(self.request, f'Inmueble "{form.instance.nombre}" creado exitosamente')
-        return response
+            # Si no es socio, verificar que sea staff
+            if not self.request.user.is_staff:
+                messages.error(self.request, 'No tienes permiso para crear inmuebles')
+                return redirect('inmuebles_list')
+        
+        messages.success(self.request, f'Inmueble "{self.object.nombre}" creado exitosamente')
+        return redirect(self.get_success_url())
 
 
 class InmuebleUpdateView(LoginRequiredMixin, UpdateView):
@@ -190,22 +246,44 @@ class InmuebleUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'inmueble_form.html'
     login_url = 'login'
 
+    def dispatch(self, request, *args, **kwargs):
+        """Verificar permisos antes de procesar"""
+        inmueble = self.get_object()
+        if not check_inmueble_permission(request.user, inmueble):
+            messages.error(request, 'No tienes permiso para editar este inmueble')
+            return redirect('inmuebles_list')
+        return super().dispatch(request, *args, **kwargs)
+
     def get_success_url(self):
         messages.success(self.request, f'Inmueble "{self.object.nombre}" actualizado')
         return reverse_lazy('inmueble_detail', kwargs={'pk': self.object.pk})
 
 
 class InmuebleDeleteView(LoginRequiredMixin, DeleteView):
-    """Eliminar inmueble"""
+    """Eliminar inmueble (soft delete)"""
     model = Inmueble
     template_name = 'inmueble_confirm_delete.html'
     success_url = reverse_lazy('inmuebles_list')
     login_url = 'login'
 
+    def dispatch(self, request, *args, **kwargs):
+        """Verificar permisos antes de procesar"""
+        inmueble = self.get_object()
+        if not check_inmueble_permission(request.user, inmueble):
+            messages.error(request, 'No tienes permiso para eliminar este inmueble')
+            return redirect('inmuebles_list')
+        return super().dispatch(request, *args, **kwargs)
+
     def delete(self, request, *args, **kwargs):
         inmueble = self.get_object()
-        messages.success(request, f'Inmueble "{inmueble.nombre}" eliminado')
-        return super().delete(request, *args, **kwargs)
+        nombre = inmueble.nombre
+        
+        # Soft delete: marcar como inactivo
+        inmueble.activo = False
+        inmueble.save()
+        
+        messages.success(request, f'Inmueble "{nombre}" desactivado')
+        return redirect(self.success_url)
 
 
 class GastoCreateView(LoginRequiredMixin, CreateView):
@@ -214,6 +292,14 @@ class GastoCreateView(LoginRequiredMixin, CreateView):
     form_class = GastoForm
     template_name = 'gasto_form.html'
     login_url = 'login'
+
+    def dispatch(self, request, *args, **kwargs):
+        """Verificar permisos del inmueble"""
+        inmueble = get_object_or_404(Inmueble, pk=self.kwargs['inmueble_pk'])
+        if not check_inmueble_permission(request.user, inmueble):
+            messages.error(request, 'No tienes permiso para agregar gastos a este inmueble')
+            return redirect('inmuebles_list')
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -236,6 +322,14 @@ class GastoUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'gasto_form.html'
     login_url = 'login'
 
+    def dispatch(self, request, *args, **kwargs):
+        """Verificar permisos del inmueble asociado"""
+        gasto = self.get_object()
+        if not check_inmueble_permission(request.user, gasto.inmueble):
+            messages.error(request, 'No tienes permiso para editar este gasto')
+            return redirect('inmuebles_list')
+        return super().dispatch(request, *args, **kwargs)
+
     def get_success_url(self):
         messages.success(self.request, 'Gasto actualizado')
         return reverse_lazy('inmueble_detail', kwargs={'pk': self.object.inmueble.pk})
@@ -247,6 +341,14 @@ class GastoDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'gasto_confirm_delete.html'
     login_url = 'login'
 
+    def dispatch(self, request, *args, **kwargs):
+        """Verificar permisos del inmueble asociado"""
+        gasto = self.get_object()
+        if not check_inmueble_permission(request.user, gasto.inmueble):
+            messages.error(request, 'No tienes permiso para eliminar este gasto')
+            return redirect('inmuebles_list')
+        return super().dispatch(request, *args, **kwargs)
+
     def get_success_url(self):
         messages.success(self.request, 'Gasto eliminado')
         return reverse_lazy('inmueble_detail', kwargs={'pk': self.object.inmueble.pk})
@@ -255,52 +357,65 @@ class GastoDeleteView(LoginRequiredMixin, DeleteView):
 @login_required(login_url="login")
 def api_dashboard_data(request):
     """API endpoint para datos del dashboard (JSON)"""
-    try:
-        socio = Socio.objects.get(usuario=request.user)
-        inmuebles = socio.inmuebles.filter(activo=True)
-    except Socio.DoesNotExist:
-        inmuebles = Inmueble.objects.filter(activo=True)
+    inmuebles, _ = get_user_inmuebles(request.user)
+    inmuebles = inmuebles.filter(activo=True).select_related().prefetch_related('gastos')
 
-    data = {
-        'inmuebles': [],
-        'resumen': {
-            'renta_bruta_total': float(sum([i.renta_anual_bruta for i in inmuebles])),
-            'renta_neta_total': float(sum([i.renta_anual_neta for i in inmuebles])),
-            'gastos_total': float(sum([i.gastos_totales for i in inmuebles])),
-            'iva_total': float(sum([i.iva_total for i in inmuebles])),
-            'irpf_total': float(sum([i.irpf_total for i in inmuebles])),
-        }
-    }
+    # Calcular resumen
+    renta_bruta_total = Decimal('0')
+    renta_neta_total = Decimal('0')
+    gastos_total = Decimal('0')
+    iva_total = Decimal('0')
+    irpf_total = Decimal('0')
 
+    inmuebles_list = []
     for inmueble in inmuebles:
-        data['inmuebles'].append({
+        renta_bruta_total += inmueble.renta_anual_bruta
+        renta_neta_total += inmueble.renta_anual_neta
+        gastos_total += inmueble.gastos_totales
+        iva_total += inmueble.iva_total
+        irpf_total += inmueble.irpf_total
+
+        inmuebles_list.append({
             'id': inmueble.id,
             'nombre': inmueble.nombre,
             'tipo': inmueble.tipo,
-            'renta_mensual': float(inmueble.renta_mensual),
-            'renta_anual_bruta': float(inmueble.renta_anual_bruta),
-            'renta_anual_neta': float(inmueble.renta_anual_neta),
-            'iva': float(inmueble.iva_total),
-            'irpf': float(inmueble.irpf_total),
-            'gastos': float(inmueble.gastos_totales),
+            'renta_mensual': str(inmueble.renta_mensual),
+            'renta_anual_bruta': str(inmueble.renta_anual_bruta),
+            'renta_anual_neta': str(inmueble.renta_anual_neta),
+            'iva': str(inmueble.iva_total),
+            'irpf': str(inmueble.irpf_total),
+            'gastos': str(inmueble.gastos_totales),
         })
+
+    data = {
+        'inmuebles': inmuebles_list,
+        'resumen': {
+            'renta_bruta_total': str(renta_bruta_total),
+            'renta_neta_total': str(renta_neta_total),
+            'gastos_total': str(gastos_total),
+            'iva_total': str(iva_total),
+            'irpf_total': str(irpf_total),
+        }
+    }
 
     return JsonResponse(data)
 
 
 @login_required(login_url="login")
 def reportes(request):
-    """Vista de reportes"""
-    try:
-        socio = Socio.objects.get(usuario=request.user)
-        inmuebles = socio.inmuebles.all()
-    except Socio.DoesNotExist:
-        inmuebles = Inmueble.objects.all()
+    """Vista de reportes optimizada"""
+    inmuebles, _ = get_user_inmuebles(request.user)
+    inmuebles = inmuebles.select_related().prefetch_related('gastos')
 
-    # Resumen anual
-    renta_total = sum([i.renta_anual_bruta for i in inmuebles])
-    impuestos_total = sum([i.iva_total + i.irpf_total for i in inmuebles])
-    gastos_total = sum([i.gastos_totales for i in inmuebles])
+    # Calcular totales
+    renta_total = Decimal('0')
+    impuestos_total = Decimal('0')
+    gastos_total = Decimal('0')
+
+    for inmueble in inmuebles:
+        renta_total += inmueble.renta_anual_bruta
+        impuestos_total += inmueble.iva_total + inmueble.irpf_total
+        gastos_total += inmueble.gastos_totales
 
     context = {
         'inmuebles': inmuebles,
